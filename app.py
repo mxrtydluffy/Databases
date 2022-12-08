@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 client = MongoClient("localhost", 27017)
 plants = client.plants_database.plant
-harvest = client.plants_database.harveests
+harvest = client.plants_database.harvests
 
 ############################################################
 # ROUTES
@@ -53,8 +53,9 @@ def create():
         # TODO: Make an `insert_one` database call to insert the object into the
         # database's `plants` collection, and get its inserted id. Pass the 
         # inserted id into the redirect call below.
+        insert_plant_id = plants.insert_one(new_plant).inserted_id
 
-        return redirect(url_for('detail', plant_id=''))
+        return redirect(url_for('detail', plant_id=insert_plant_id))
 
     else:
         return render_template('create.html')
