@@ -1,7 +1,6 @@
 from flask import Flask, request, redirect, render_template, url_for
-# from flask_pymongo import PyMongo | Don't need anymore
+from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
-from pymongo import MongoClient
 
 ############################################################
 # SETUP
@@ -9,12 +8,8 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# app.config["MONGO_URI"] = "mongodb://localhost:27017/plantsDatabase"
-# mongo = PyMongo(app)
-
-client = MongoClient("localhost", 27017)
-plants = client.plants_database.plant
-harvests = client.plants_database.harvests
+app.config["MONGO_URI"] = "mongodb://localhost:27017/plantsDatabase"
+mongo = PyMongo(app)
 
 ############################################################
 # ROUTES
@@ -26,10 +21,14 @@ def plants_list():
 
     # TODO: Replace the following line with a database call to retrieve *all*
     # plants from the Mongo database's `plants` collection.
-    plants_data = plants.find()
+    plants = mongo.db.plants.find()
+
+    plant_data_list = []
+    for plant in plants:
+        plant_data_list.append(plant)
 
     context = {
-        'plants': plants_data,
+        'plants': plant_data_list,
     }
     return render_template('plants_list.html', **context)
 
@@ -44,23 +43,20 @@ def create():
     if request.method == 'POST':
         # TODO: Get the new plant's name, variety, photo, & date planted, and 
         # store them in the object below.
-        name = request.form.get("plant_name")
-        variety = request.form.get("variety")
-        photo = request.form.get("photo")
-        date_planted = request.form.get("date_planted")
 
         new_plant = {
-            'name': name,
-            'variety': variety,
-            'photo_url': photo,
-            'date_planted': date_planted
+            'name': request.form.get('plant_name'),
+            'variety': request.form.get('variety'),
+            'photo_url': request.form.get('photo'),
+            'date_planted': request.form.get('date_planted')
         }
+
         # TODO: Make an `insert_one` database call to insert the object into the
         # database's `plants` collection, and get its inserted id. Pass the 
         # inserted id into the redirect call below.
-        insert_plant_id = plants.insert_one(new_plant).inserted_id
+        inserted_plant = mongo.db.plants.insert_one(new_plant).inserted_id
 
-        return redirect(url_for('detail', plant_id=insert_plant_id))
+        return redirect(url_for('detail', plant_id = inserted_plant))
 
     else:
         return render_template('create.html')
@@ -71,18 +67,23 @@ def detail(plant_id):
 
     # TODO: Replace the following line with a database call to retrieve *one*
     # plant from the database, whose id matches the id passed in via the URL.
-    plant_to_show = plants.find_one({"_id:" (plant_id)})
+    plant_to_show = mongo.db.plants.find_one({"_id:" (plant_id)})
 
     # TODO: Use the `find` database operation to find all harvests for the
     # plant's id.
     # HINT: This query should be on the `harvests` collection, not the `plants`
     # collection.
-    find_harvests = harvests.find()
+    find_harvests = mongo.db.harvests.find({'plant_id': plant_id})
+    harvest_list = []
+
+    for harvest in find_harvests:
+        harvest_list.append(harvest)
 
     context = {
         'plant' : plant_to_show,
-        'harvests': find_harvests
+        'harvests': harvest_list
     }
+    
     return render_template('detail.html', **context)
 
 @app.route('/harvest/<plant_id>', methods=['POST'])
@@ -147,9 +148,11 @@ def edit(plant_id):
 def delete(plant_id):
     # TODO: Make a `delete_one` database call to delete the plant with the given
     # id.
+    mongo.db.plants.delete_one({'_id': ObjectId(plant_id)})
 
     # TODO: Also, make a `delete_many` database call to delete all harvests with
     # the given plant id.
+    mongo.db.harvests.delete_many({'plant_id': plant_id})
 
     return redirect(url_for('plants_list'))
 

@@ -18,10 +18,11 @@
         #}
 
         <div id="items">
+            {% for plant in plants %}
             <div class="card">
-                <a href="plant/{{plant._id}}"><img src="{{plant.photo_url}}"></a>
+                <a href="plant/{{plant['_id']}}"><img src="{{plant['photo_url']}}"></a>
                 <div class="card-content">
-                    <a href="plants/{{plant._id}}">Tomato</a>
+                    <a href="plants/{{plant['_id']}}">Tomato</a>
                 </div>
             </div>
 
@@ -42,9 +43,10 @@
             <div class="card">
                 <a href="/plant/4"><img src="https://img.thrfun.com/img/077/665/jalapeno_peppers_s1.jpg"></a>
                 <div class="card-content">
-                    <a href="/plant/4">Jalapeno</a>
+                    <a href="/plant/{{plant['_id']}}">{{plant['name']}}</a>
                 </div>
             </div>
+        {% endfor %}
         </div>
     </div>
 
