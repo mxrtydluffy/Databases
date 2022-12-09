@@ -21,15 +21,12 @@ def plants_list():
 
     # TODO: Replace the following line with a database call to retrieve *all*
     # plants from the Mongo database's `plants` collection.
-    plants = mongo.db.plants.find()
-
-    plant_data_list = []
-    for plant in plants:
-        plant_data_list.append(plant)
+    plants_info = mongo.db.plants.find()
 
     context = {
-        'plants': plant_data_list,
+        'plants': plants_info
     }
+
     return render_template('plants_list.html', **context)
 
 @app.route('/about')
@@ -47,16 +44,17 @@ def create():
         new_plant = {
             'name': request.form.get('plant_name'),
             'variety': request.form.get('variety'),
-            'photo': request.form.get('photo'),
+            'photo_url': request.form.get('photo'),
             'date_planted': request.form.get('date_planted')
         }
 
         # TODO: Make an `insert_one` database call to insert the object into the
         # database's `plants` collection, and get its inserted id. Pass the 
         # inserted id into the redirect call below.
-        inserted_plant = mongo.db.plants.insert_one(new_plant).inserted_id
+        result = mongo.db.plants_data.insert_one(new_plant)
+        print(new_plant)
 
-        return redirect(url_for('detail', plant_id = inserted_plant))
+        return redirect(url_for('detail', plant_id=new_plant ['_id']))
 
     else:
         return render_template('create.html')
@@ -67,21 +65,20 @@ def detail(plant_id):
 
     # TODO: Replace the following line with a database call to retrieve *one*
     # plant from the database, whose id matches the id passed in via the URL.
-    plant_to_show = mongo.db.plants.find_one({"_id": ObjectId(plant_id)})
+    plant_to_show = mongo.db.plants_info.find_one({"_id": ObjectId(plant_id)})
+    print(plant_to_show)
 
     # TODO: Use the `find` database operation to find all harvests for the
     # plant's id.
     # HINT: This query should be on the `harvests` collection, not the `plants`
     # collection.
-    find_harvests = mongo.db.harvests.find({'plant_id': plant_id})
-    harvest_list = []
 
-    for harvest in find_harvests:
-        harvest_list.append(harvest)
+    harvests = mongo.db.harvests.find({'plant_id': plant_id})
+    print(harvests)
 
     context = {
         'plant' : plant_to_show,
-        'harvests': harvest_list
+        'harvests': harvests
     }
     
     return render_template('detail.html', **context)
@@ -97,14 +94,14 @@ def harvest(plant_id):
 
     new_harvest = {
         'quantity': request.form.get('harvested_amount'), # e.g. '3 tomatoes'
-        'date': request.form.get('date_harvested'),
+        'date': request.form.get('date_planted'),
         'plant_id': plant_id
     }
 
     # TODO: Make an `insert_one` database call to insert the object into the 
     # `harvests` collection of the database.
-
-    mongo.db.harvests.insert_one(new_harvest)
+    result = mongo.db.harvests.insert_one(new_harvest)
+    print(new_harvest)
 
     return redirect(url_for('detail', plant_id = plant_id))
 
@@ -116,20 +113,23 @@ def edit(plant_id):
         # TODO: Make an `update_one` database call to update the plant with the
         # given id. Make sure to put the updated fields in the `$set` object.
 
-        name = request.form.get("plant_name")
-        variety = request.form.get("variety")
-        photo = request.form.get("photo")
-        date_planted = request.form.get("date_planted")
+        result = mongo.db.plants.update_one(plant_id)
+        print(plant_id)
 
-        search = {'_id': ObjectId(plant_id)}
-        changed = {'$set': {'name': name, 'variety': variety, 'photo': photo, 'date_planted': date_planted } }
-        mongo.db.plants.update_one(search, changed)
+        # name = request.form.get("plant_name")
+        # variety = request.form.get("variety")
+        # photo = request.form.get("photo")
+        # date_planted = request.form.get("date_planted")
+
+        # search = {'_id': ObjectId(plant_id)}
+        # changed = {'$set': {'name': name, 'variety': variety, 'photo': photo, 'date_planted': date_planted } }
+        # mongo.db.plants.update_one(search, changed)
 
         return redirect(url_for('detail', plant_id=plant_id))
     else:
         # TODO: Make a `find_one` database call to get the plant object with the
         # passed-in _id.
-        plant_to_show = mongo.db.plants.find_one({"_id": ObjectId(plant_id)})
+        plant_to_show = mongo.db.plants.find_one({'_id': ObjectId(plant_id)})
 
         context = {
             'plant': plant_to_show
@@ -141,14 +141,16 @@ def edit(plant_id):
 def delete(plant_id):
     # TODO: Make a `delete_one` database call to delete the plant with the given
     # id.
-    mongo.db.plants.delete_one({'_id': ObjectId(plant_id)})
+
+    result = mongo.db.plants.delete_one({'_id': ObjectId(plant_id)})
+    print(result.deleted_count)
 
     # TODO: Also, make a `delete_many` database call to delete all harvests with
     # the given plant id.
-    mongo.db.harvests.delete_many({'plant_id': plant_id})
+    result = mongo.db.harvests.delete_many({'plant_id': plant_id})
+    print(result.deleted_count)
 
     return redirect(url_for('plants_list'))
 
 if __name__ == '__main__':
     app.run(debug=True)
-
