@@ -47,7 +47,7 @@ def create():
         new_plant = {
             'name': request.form.get('plant_name'),
             'variety': request.form.get('variety'),
-            'photo_url': request.form.get('photo'),
+            'photo': request.form.get('photo'),
             'date_planted': request.form.get('date_planted')
         }
 
@@ -67,7 +67,7 @@ def detail(plant_id):
 
     # TODO: Replace the following line with a database call to retrieve *one*
     # plant from the database, whose id matches the id passed in via the URL.
-    plant_to_show = mongo.db.plants.find_one({"_id:" (plant_id)})
+    plant_to_show = mongo.db.plants.find_one({"_id": ObjectId(plant_id)})
 
     # TODO: Use the `find` database operation to find all harvests for the
     # plant's id.
@@ -92,51 +92,44 @@ def harvest(plant_id):
     Accepts a POST request with data for 1 harvest and inserts into database.
     """
 
-    quantity = request.form.get("harvested_amount")
-    date = request.form.get("date_planted")
-
     # TODO: Create a new harvest object by passing in the form data from the
     # detail page form.
+
     new_harvest = {
-        'quantity': quantity, # e.g. '3 tomatoes'
-        'date': date,
+        'quantity': request.form.get('harvested_amount'), # e.g. '3 tomatoes'
+        'date': request.form.get('date_harvested'),
         'plant_id': plant_id
     }
 
     # TODO: Make an `insert_one` database call to insert the object into the 
     # `harvests` collection of the database.
-    harvested_plants = harvests.insert_one(new_harvest)
 
-    return redirect(url_for('detail', plant_id=harvested_plants))
+    mongo.db.harvests.insert_one(new_harvest)
+
+    return redirect(url_for('detail', plant_id = plant_id))
 
 @app.route('/edit/<plant_id>', methods=['GET', 'POST'])
 def edit(plant_id):
     """Shows the edit page and accepts a POST request with edited data."""
 
-    name = request.form.get("plant_name")
-    variety = request.form.get("variety")
-    photo_url = request.form.get("photo")
-    date_planted = request.form.get("date_planted")
-
     if request.method == 'POST':
         # TODO: Make an `update_one` database call to update the plant with the
         # given id. Make sure to put the updated fields in the `$set` object.
 
-        edit_plant = {
-            "name": name,
-            "variety": variety,
-            "photo_url": photo_url,
-            "date_planted": date_planted
-        }
+        name = request.form.get("plant_name")
+        variety = request.form.get("variety")
+        photo = request.form.get("photo")
+        date_planted = request.form.get("date_planted")
 
-        new_edit = {"$set": edit_plant}
-        edited_plant = plants.update_one({"_id": ObjectId(plant_id)}, new_edit)
-        
-        return redirect(url_for('detail', plant_id=edited_plant))
+        search = {'_id': ObjectId(plant_id)}
+        changed = {'$set': {'name': name, 'variety': variety, 'photo': photo, 'date_planted': date_planted } }
+        mongo.db.plants.update_one(search, changed)
+
+        return redirect(url_for('detail', plant_id=plant_id))
     else:
         # TODO: Make a `find_one` database call to get the plant object with the
         # passed-in _id.
-        plant_to_show = plants.find_one({"_id": ObjectId(plant_id)})
+        plant_to_show = mongo.db.plants.find_one({"_id": ObjectId(plant_id)})
 
         context = {
             'plant': plant_to_show
